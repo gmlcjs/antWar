@@ -1,53 +1,105 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
+using static UnityEditor.Searcher.SearcherWindow.Alignment;
+using System.Threading.Tasks;
+using UnityEngine.InputSystem;
+using System.Security.Cryptography;
 
 public class Player : MonoBehaviour
 {
-    public float moveSpeed; // ÀÌµ¿ ½ºÇÇµå
-    public float rotationSpeed; // È¸Àü¼Óµµ
-    public string name; // ÀÌ¸§
+    [Header("í”Œë ˆì´ì–´ ì„¤ì •")]
+    [SerializeField] private string playerID = ""; // ê³ ìœ  í”Œë ˆì´ì–´ ID  
+    private static HashSet<int> usedPlayerIDs = new HashSet<int>(); // ì‚¬ìš©ëœ í”Œë ˆì´ì–´ ID ëª©ë¡  
 
-    /// <summary> ¹®Á¦Á¡
-    /// 1. ¿òÁ÷ÀÌ´Â°ÍÀ» Ä«¸Ş¶ó±âÁØÀÌ ¾Æ´Ñ ÇÃ·¹ÀÌ¾î±âÁØÀ¸·Î ÀÌµ¿ÇÒ°Í.
-    /// 2. ¿òÁ÷ÀÌ¸é¼­ È¸ÀüÀÌ¾ÈµÊ
-    /// </summary>
+    public string name; // ìºë¦­í„° ì´ë¦„  
+    public float moveSpeed; // ì´ë™ ì†ë„  
+    public float rotationSpeed; // íšŒì „ ì†ë„  
+    public float rigidbodyMass; // Rigidbody ì§ˆëŸ‰ ì„¤ì •  
 
-    void Update()
+    [Header("ì»´í¬ë„ŒíŠ¸ ì°¸ì¡°")]
+    private Rigidbody rb; // Rigidbody ì°¸ì¡°  
+    private GameObject bodyObject; // í”Œë ˆì´ì–´ body ì˜¤ë¸Œì íŠ¸ ì°¸ì¡°  
+
+    [Header("ì…ë ¥ ê°’")]
+    private Vector2 movementInput; // ì‚¬ìš©ì ì…ë ¥ì— ë”°ë¥¸ ì´ë™ ë°©í–¥  
+    private float vertical = 0; // Zì¶• ì…ë ¥ ê°’  
+    private float horizontal = 0; // Xì¶• ì…ë ¥ ê°’  
+
+    [Header("ìƒíƒœ ë³€ìˆ˜")]
+    private bool hasEntered = false; // ì¶©ëŒ ìƒíƒœ ì²´í¬  
+
+
+    
+    private void Awake()
     {
-        // PC È¯°æ¿¡¼­ Å°º¸µå ÀÔ·ÂÀ» »ç¿ëÇÏ´Â ÀÌµ¿
-        if (Application.isEditor || Application.platform == RuntimePlatform.WindowsPlayer || Application.platform == RuntimePlatform.OSXPlayer){MoveWithKeyboard();}
-        // ¸ğ¹ÙÀÏ È¯°æ¿¡¼­ ÅÍÄ¡ ÀÔ·ÂÀ» »ç¿ëÇÏ´Â ÀÌµ¿
-        else if (Application.platform == RuntimePlatform.Android || Application.platform == RuntimePlatform.IPhonePlayer){MoveWithTouch();}
+        rb = GetComponent<Rigidbody>();
+        playerID = GetUniquePlayerID().ToString(); //ëœë¤ê°’ ë¶€ì—¬
+    }
+    private void Start()
+    {
+        // ë°”ë””ì˜¤ë¸Œì íŠ¸ ì„ ì–¸
+        Transform bodyTransform = transform.Find("body");
+        bodyObject = bodyTransform.gameObject;
 
     }
-    // PC È¯°æ¿¡¼­ Å°º¸µå ÀÔ·ÂÀ» ÅëÇÑ ÀÌµ¿
-    private void MoveWithKeyboard()
+    
+    // ì‚¬ìš©ì ì…ë ¥ì— ë”°ë¥¸ ì´ë™ ë°©í–¥ì„ ì €ì¥
+    public void OnMove(InputAction.CallbackContext context)
     {
-        float vertical =  Input.GetAxis("Vertical");      // W/S ¶Ç´Â È­»ìÇ¥ À§¾Æ·¡
-        Vector3 direction = new Vector3(0f, 0f, vertical).normalized; // ÁÂ¿ì / ¾ÕµÚ / z°ª
+        movementInput = context.ReadValue<Vector2>();
+    }
+    void FixedUpdate()
+    {
+        // ğŸš— 1. ì „í›„ ì´ë™ (Zì¶• ê¸°ì¤€)
+        Vector3 move = transform.forward * movementInput.y * moveSpeed * Time.fixedDeltaTime;
+        rb.MovePosition(rb.position + move);
 
-        transform.Translate(direction * moveSpeed * Time.deltaTime, Space.World);
-        float horizontal = Input.GetAxis("Horizontal");  // A/D ¶Ç´Â È­»ìÇ¥ ÁÂ¿ì
-         // ÀÔ·Â°ª¿¡ µû¶ó È¸Àü (ÁÂ¿ì)
-        if (horizontal != 0f)
+        // ğŸš— 2. ì¢Œìš° íšŒì „ (Yì¶• ê¸°ì¤€)
+        float turn = movementInput.x * rotationSpeed * Time.fixedDeltaTime;
+        Quaternion turnRotation = Quaternion.Euler(0f, turn, 0f);
+        rb.MoveRotation(rb.rotation * turnRotation);
+    }
+
+   
+
+    // ì‚¬ìš©ì ì…ë ¥ì— ë”°ë¥¸ íšŒì „ ë°©í–¥ì„ ì €ì¥
+    public void OnLockBack(InputAction.CallbackContext context)
+    {
+        // ë’¤ë¡œ ë³´ê¸°
+        if (context.performed)
         {
-            Rotate(horizontal);
+            Quaternion targetRotation = Quaternion.Euler(0f, transform.rotation.eulerAngles.y +180f, 0f);
+            transform.rotation = targetRotation;
+        }
+    }
+
+    // ê³ ìœ í•œ playerID ìƒì„± í•¨ìˆ˜
+    private int GetUniquePlayerID()
+    {
+        int id;
+        do
+        {
+            //id = Random.Range(1, 3);  // Random.Range(1, 3)ëŠ” 1ê³¼ 2 ë‘ ê°€ì§€ ìˆ«ìë§Œ ìƒì„±  3ê°œ ì´ìƒì˜ Player ê°ì²´ê°€ ì¡´ì¬í•˜ë©´ ì¤‘ë³µ IDë¥¼ í”¼í•  ìˆ˜ ì—†ì–´ì„œ ë¬´í•œ ë£¨í”„ì— ë¹ ì§
+            id = Random.Range(1, 1001);  // 1ë¶€í„° 1000 ì‚¬ì´ì˜ ëœë¤ ìˆ«ì ìƒì„± 
+        } while (usedPlayerIDs.Contains(id));  // ì´ë¯¸ ì‚¬ìš©ëœ IDë¼ë©´ ë‹¤ì‹œ ìƒì„±
+
+        usedPlayerIDs.Add(id);  // ìƒˆë¡œ ìƒì„±ëœ IDë¥¼ ì‚¬ìš© ëª©ë¡ì— ì¶”ê°€
+        return id;  // ê³ ìœ í•œ ID ë°˜í™˜
+    }
+
+
+    async void OnTriggerEnter(Collider collider)
+    {
+
+        if (collider.CompareTag("Player") && collider.gameObject.name == "head")
+        {
+            gameObject.SetActive(false);
+            await Task.Delay((int)(10000));
         }
 
     }
 
-    // ¸ğ¹ÙÀÏ È¯°æ¿¡¼­ ÅÍÄ¡ ÀÔ·ÂÀ» ÅëÇÑ ÀÌµ¿
-    private void MoveWithTouch(){}
 
-
-    // È¸Àü ÇÔ¼ö
-    private void Rotate(float direction)
-    {
-        // YÃà È¸Àü¸¸ ¼öÁ¤ (¿À¸¥ÂÊ/¿ŞÂÊ È¸Àü)
-
-        // ±âÁ¸ È¸Àü °ª¿¡¼­ Y°ª¸¸ ¼öÁ¤ÇÏ¿© È¸Àü
-        transform.Rotate(Vector3.right, direction * rotationSpeed * Time.deltaTime);
-
-    }
 }
