@@ -10,17 +10,19 @@ using System.Security.Cryptography;
 public class Player : MonoBehaviour
 {
     [Header("플레이어 설정")]
-    [SerializeField] private string playerID = ""; // 고유 플레이어 ID  
-    private static HashSet<int> usedPlayerIDs = new HashSet<int>(); // 사용된 플레이어 ID 목록  
+    [SerializeField] private string playerID = ""; // 플레이어 고유 ID
+    private static HashSet<int> userPlayerIDs = new HashSet<int>(); // 사용된 플레이어 ID 목록  
 
     public string name; // 캐릭터 이름  
-    public float moveSpeed; // 이동 속도  
+    public float playerSpeed; // 플레이어 이동 속도
     public float rotationSpeed; // 회전 속도  
     public float rigidbodyMass; // Rigidbody 질량 설정  
 
     [Header("컴포넌트 참조")]
     private Rigidbody rb; // Rigidbody 참조  
     private GameObject bodyObject; // 플레이어 body 오브젝트 참조  
+
+    
 
     [Header("입력 값")]
     private Vector2 movementInput; // 사용자 입력에 따른 이동 방향  
@@ -29,6 +31,7 @@ public class Player : MonoBehaviour
 
     [Header("상태 변수")]
     private bool hasEntered = false; // 충돌 상태 체크  
+    [SerializeField] private float moveSpeed; //  게임하는 동안의 플레이어 이동속도 
 
 
     
@@ -36,6 +39,7 @@ public class Player : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         playerID = GetUniquePlayerID().ToString(); //랜덤값 부여
+        moveSpeed = playerSpeed; 
     }
     private void Start()
     {
@@ -49,9 +53,14 @@ public class Player : MonoBehaviour
     public void OnMove(InputAction.CallbackContext context)
     {
         movementInput = context.ReadValue<Vector2>();
+
     }
     void FixedUpdate()
     {
+        // 쉬프트를 누르고 있으면 moveSpeed의 2배로 이동
+        if (Keyboard.current.leftShiftKey.isPressed) moveSpeed = playerSpeed * 2;
+        else moveSpeed = playerSpeed;
+
         // 🚗 1. 전후 이동 (Z축 기준)
         Vector3 move = transform.forward * movementInput.y * moveSpeed * Time.fixedDeltaTime;
         rb.MovePosition(rb.position + move);
@@ -83,16 +92,16 @@ public class Player : MonoBehaviour
         {
             //id = Random.Range(1, 3);  // Random.Range(1, 3)는 1과 2 두 가지 숫자만 생성  3개 이상의 Player 객체가 존재하면 중복 ID를 피할 수 없어서 무한 루프에 빠짐
             id = Random.Range(1, 1001);  // 1부터 1000 사이의 랜덤 숫자 생성 
-        } while (usedPlayerIDs.Contains(id));  // 이미 사용된 ID라면 다시 생성
+        } while (userPlayerIDs.Contains(id));  // 이미 사용된 ID라면 다시 생성
 
-        usedPlayerIDs.Add(id);  // 새로 생성된 ID를 사용 목록에 추가
+        userPlayerIDs.Add(id);  // 새로 생성된 ID를 사용 목록에 추가
         return id;  // 고유한 ID 반환
     }
 
 
     async void OnTriggerEnter(Collider collider)
     {
-
+        // 플레이어가 충돌한 오브젝트가 "Item" 태그를 가지고 있고, 플레이어의 head와 충돌했을 때
         if (collider.CompareTag("Player") && collider.gameObject.name == "head")
         {
             gameObject.SetActive(false);

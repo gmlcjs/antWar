@@ -489,7 +489,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerID: 
   name: "\uD50C\uB808\uC774\uC5B4"
-  moveSpeed: 10
+  playerSpeed: 10
+  moveSpeed: 0
   rotationSpeed: 100
   rigidbodyMass: 0
 --- !u!114 &2391243307118090270
@@ -815,7 +816,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8248689512193492305}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 1, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
