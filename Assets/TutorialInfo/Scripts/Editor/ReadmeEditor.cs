@@ -10,18 +10,19 @@ using System.Reflection;
 [InitializeOnLoad]
 public class ReadmeEditor : Editor
 {
+    // ReadmeEditor는 Readme 스크립트를 인스펙터에 표시하는 클래스입니다.
     static string s_ShowedReadmeSessionStateName = "ReadmeEditor.showedReadme";
-    
+    // Readme 스크립트의 인스펙터에 표시할 폴더 경로입니다.    
     static string s_ReadmeSourceDirectory = "Assets/TutorialInfo";
 
-    const float k_Space = 16f;
+    const float k_Space = 16f; // 각 요소 사이의 간격입니다.
 
-    static ReadmeEditor()
+    static ReadmeEditor() // ReadmeEditor 클래스가 로드될 때 호출되는 정적 생성자입니다.
     {
         EditorApplication.delayCall += SelectReadmeAutomatically;
     }
 
-    static void RemoveTutorial()
+    static void RemoveTutorial() // Readme 폴더와 Readme 스크립트를 삭제하는 함수입니다.
     {
         if (EditorUtility.DisplayDialog("Remove Readme Assets",
             
@@ -66,7 +67,7 @@ public class ReadmeEditor : Editor
         }
     }
 
-    static void LoadLayout()
+    static void LoadLayout() // Layout.wlt 파일을 로드하는 함수입니다.
     {
         var assembly = typeof(EditorApplication).Assembly;
         var windowLayoutType = assembly.GetType("UnityEditor.WindowLayout", true);
@@ -74,7 +75,7 @@ public class ReadmeEditor : Editor
         method.Invoke(null, new object[] { Path.Combine(Application.dataPath, "TutorialInfo/Layout.wlt"), false });
     }
 
-    static Readme SelectReadme()
+    static Readme SelectReadme() // Readme 스크립트를 선택하는 함수입니다.
     {
         var ids = AssetDatabase.FindAssets("Readme t:Readme");
         if (ids.Length == 1)

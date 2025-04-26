@@ -9,7 +9,7 @@ public class JoystickCode : MonoBehaviour, IDragHandler, IPointerUpHandler, IPoi
     [SerializeField] private RectTransform joystickBackground; // 조이스틱 배경
     [SerializeField] private RectTransform joystick; // 조이스틱 컨트롤 이미지
     private Vector2 inputVector; // 입력 벡터
-    private float radius = 100f; // 조이스틱 배경의 반지름
+    [SerializeField] float radius = 100f; // 조이스틱 배경의 반지름
     
     public Vector2 InputVector2 => inputVector; // 입력 벡터 반환
 

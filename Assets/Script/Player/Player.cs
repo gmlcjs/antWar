@@ -6,21 +6,23 @@ using static UnityEditor.Searcher.SearcherWindow.Alignment;
 using System.Threading.Tasks;
 using UnityEngine.InputSystem;
 using System.Security.Cryptography;
+using Photon.Pun;
 
-public class Player : MonoBehaviour
+public class Player : MonoBehaviourPun, IPunInstantiateMagicCallback
 {
+    public int score = 0 ; // // 플레이어 점수 업데이트 시 호출될 함수
     [Header("플레이어 설정")]
     [SerializeField] private string playerID = ""; // 플레이어 고유 ID
     private static HashSet<int> userPlayerIDs = new HashSet<int>(); // 사용된 플레이어 ID 목록  
 
-    public string name; // 캐릭터 이름  
-    public float playerSpeed; // 플레이어 이동 속도
-    public float rotationSpeed; // 회전 속도  
+    public string name ="플레이어"; // 캐릭터 이름  
+    public float playerSpeed = 15; // 플레이어 이동 속도
+    public float rotationSpeed = 100; // 회전 속도  
     public float rigidbodyMass; // Rigidbody 질량 설정  
 
     [Header("컴포넌트 참조")]
     private Rigidbody rb; // Rigidbody 참조  
-    private GameObject bodyObject; // 플레이어 body 오브젝트 참조  
+    // private GameObject bodyObject; // 플레이어 body 오브젝트 참조  
 
     
 
@@ -33,6 +35,8 @@ public class Player : MonoBehaviour
     private bool hasEntered = false; // 충돌 상태 체크  
     [SerializeField] private float moveSpeed; //  게임하는 동안의 플레이어 이동속도 
 
+    [SerializeField] private JoystickCode joystick; // 조이스틱 ***조이스틱 클래스를 참조하기 때문에 개인별 들어가는 클래스명이 다름 
+ 
 
     
     private void Awake()
@@ -41,29 +45,38 @@ public class Player : MonoBehaviour
         playerID = GetUniquePlayerID().ToString(); //랜덤값 부여
         moveSpeed = playerSpeed; 
     }
-    private void Start()
+    public void OnPhotonInstantiate(PhotonMessageInfo info)
     {
-        // 바디오브젝트 선언
-        Transform bodyTransform = transform.Find("body");
-        bodyObject = bodyTransform.gameObject;
-
+        // 이 객체가 생성될 때, 내 TagObject를 Player 스크립트로 연결
+        info.Sender.TagObject = this;
     }
+
     
     // 사용자 입력에 따른 이동 방향을 저장
-    public void OnMove(InputAction.CallbackContext context)
-    {
-        movementInput = context.ReadValue<Vector2>();
+    // public void OnMove(InputAction.CallbackContext context)
+    // {
+    //     movementInput = context.ReadValue<Vector2>();
+    // }
 
-    }
     void FixedUpdate()
     {
         // 쉬프트를 누르고 있으면 moveSpeed의 2배로 이동
-        if (Keyboard.current.leftShiftKey.isPressed) moveSpeed = playerSpeed * 2;
+        if (Keyboard.current.leftShiftKey.isPressed) moveSpeed = playerSpeed * 1.5f;
         else moveSpeed = playerSpeed;
 
         // 🚗 1. 전후 이동 (Z축 기준)
-        Vector3 move = transform.forward * movementInput.y * moveSpeed * Time.fixedDeltaTime;
-        rb.MovePosition(rb.position + move);
+        if (joystick.InputVector2.magnitude != 0)  // 조이스틱 이동
+        {
+            movementInput = new Vector2(joystick.InputVector2.x, joystick.InputVector2.y);   
+        }else if(Input.GetAxisRaw("Horizontal") != 0 || Input.GetAxisRaw("Vertical") != 0) // 키보드 이동
+        {
+            movementInput = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"));
+        }else{ // 아무입력이없으면
+            return;
+        }
+
+        Vector3 move = transform.forward * movementInput.y * moveSpeed;// rb.AddForce(move, ForceMode.VelocityChange);
+        rb.velocity = new Vector3(move.x, rb.velocity.y, move.z); // Y축 속도는 유지하면서 이동
 
         // 🚗 2. 좌우 회전 (Y축 기준)
         float turn = movementInput.x * rotationSpeed * Time.fixedDeltaTime;
@@ -76,12 +89,12 @@ public class Player : MonoBehaviour
     // 사용자 입력에 따른 회전 방향을 저장
     public void OnLockBack(InputAction.CallbackContext context)
     {
-        // 뒤로 보기
-        if (context.performed)
-        {
-            Quaternion targetRotation = Quaternion.Euler(0f, transform.rotation.eulerAngles.y +180f, 0f);
-            transform.rotation = targetRotation;
-        }
+        // // 뒤로 보기
+        // if (context.performed)
+        // {
+        //     Quaternion targetRotation = Quaternion.Euler(0f, transform.rotation.eulerAngles.y +180f, 0f);
+        //     transform.rotation = targetRotation;
+        // }
     }
 
     // 고유한 playerID 생성 함수
