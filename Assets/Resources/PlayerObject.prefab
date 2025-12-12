@@ -487,12 +487,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 634f498adbbff564bb59098c735f1889, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  score: 0
   playerID: 
   name: "\uD50C\uB808\uC774\uC5B4"
   playerSpeed: 10
   rotationSpeed: 100
   rigidbodyMass: 0
+  PlaberCanvas: {fileID: 0}
   moveSpeed: 0
+  joystick: {fileID: 0}
 --- !u!114 &2391243307118090270
 MonoBehaviour:
   m_ObjectHideFlags: 0

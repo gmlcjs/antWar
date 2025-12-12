@@ -1,11 +1,6 @@
-using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
-using static UnityEditor.Searcher.SearcherWindow.Alignment;
 using System.Threading.Tasks;
-using UnityEngine.InputSystem;
-using System.Security.Cryptography;
 using Photon.Pun;
 
 public class Player : MonoBehaviourPun, IPunInstantiateMagicCallback
@@ -23,8 +18,9 @@ public class Player : MonoBehaviourPun, IPunInstantiateMagicCallback
     [Header("컴포넌트 참조")]
     private Rigidbody rb; // Rigidbody 참조  
     // private GameObject bodyObject; // 플레이어 body 오브젝트 참조  
+    private bool isUIButtonPressed = false; // UI 버튼 눌림 상태 체크 달리기때 ture
 
-    
+    public GameObject PlaberCanvas; // 플레이어 캠퍼스
 
     [Header("입력 값")]
     private Vector2 movementInput; // 사용자 입력에 따른 이동 방향  
@@ -45,6 +41,18 @@ public class Player : MonoBehaviourPun, IPunInstantiateMagicCallback
         playerID = GetUniquePlayerID().ToString(); //랜덤값 부여
         moveSpeed = playerSpeed; 
     }
+
+    private void Start()
+    {
+        if (photonView.IsMine)
+        {
+            PlaberCanvas.gameObject.SetActive(true);
+        }
+        else
+        {
+            PlaberCanvas.gameObject.SetActive(false);
+        }
+    }
     public void OnPhotonInstantiate(PhotonMessageInfo info)
     {
         // 이 객체가 생성될 때, 내 TagObject를 Player 스크립트로 연결
@@ -60,9 +68,12 @@ public class Player : MonoBehaviourPun, IPunInstantiateMagicCallback
 
     void FixedUpdate()
     {
-        // 쉬프트를 누르고 있으면 moveSpeed의 2배로 이동
-        if (Keyboard.current.leftShiftKey.isPressed) moveSpeed = playerSpeed * 1.5f;
-        else moveSpeed = playerSpeed;
+        // 다른 플레이어가 조작하는 경우 이동하지 않음
+        if (!photonView.IsMine)return;        
+
+        // 쉬프트 or 버튼 달리기
+        if (Input.GetKey(KeyCode.LeftShift) || isUIButtonPressed) 
+        moveSpeed = playerSpeed * 1.5f; else moveSpeed = playerSpeed;
 
         // 🚗 1. 전후 이동 (Z축 기준)
         if (joystick.InputVector2.magnitude != 0)  // 조이스틱 이동
@@ -83,19 +94,19 @@ public class Player : MonoBehaviourPun, IPunInstantiateMagicCallback
         Quaternion turnRotation = Quaternion.Euler(0f, turn, 0f);
         rb.MoveRotation(rb.rotation * turnRotation);
     }
+    // 버튼을 누를 때 실행 달리기,
+    public void OnUIButtonDown()
+    {
+        isUIButtonPressed = true;
+    }
 
+    // 버튼을 뗄 때 실행 걷기
+    public void OnUIButtonUp()
+    {
+        isUIButtonPressed = false;
+    }
    
 
-    // 사용자 입력에 따른 회전 방향을 저장
-    public void OnLockBack(InputAction.CallbackContext context)
-    {
-        // // 뒤로 보기
-        // if (context.performed)
-        // {
-        //     Quaternion targetRotation = Quaternion.Euler(0f, transform.rotation.eulerAngles.y +180f, 0f);
-        //     transform.rotation = targetRotation;
-        // }
-    }
 
     // 고유한 playerID 생성 함수
     private int GetUniquePlayerID()
@@ -111,14 +122,32 @@ public class Player : MonoBehaviourPun, IPunInstantiateMagicCallback
         return id;  // 고유한 ID 반환
     }
 
-
-    async void OnTriggerEnter(Collider collider)
+    // [PunRPC]
+    void OnTriggerEnter(Collider collider)
     {
-        // 플레이어가 충돌한 오브젝트가 "Item" 태그를 가지고 있고, 플레이어의 head와 충돌했을 때
-        if (collider.CompareTag("Player") && collider.gameObject.name == "head")
+        if (!photonView.IsMine) return; // 내 플레이어 객체가 아니면 무시
+
+        // 공격자의 PhotonView 찾기
+        PhotonView attackerView = collider.GetComponentInParent<PhotonView>();
+        if (attackerView == null || attackerView.IsMine) return; // 자기 무기면 무시
+
+        Debug.Log($"충돌한 오브젝트 : {collider.gameObject.name}"); // 충돌한 오브젝트 이름 출력
+        // 플레이어가 충돌한 오브젝트가 "damageSource" 태그를 가진 경우
+        if (collider.CompareTag("damageSource") )
         {
-            gameObject.SetActive(false);
-            await Task.Delay((int)(10000));
+            GameManager gameManager = FindObjectOfType<GameManager>();
+            gameManager.ChangeCamera();
+
+            // 사망 UI 화면       
+            GameOver gameOver = FindObjectOfType<GameOver>();
+            gameOver.ShowGameOverUI(); // 게임 오버 UI 활성화
+
+            // 관전 모드로 전환
+            PhotonNetwork.LocalPlayer.TagObject = null; // 플레이어를 관전자로 설정
+            PhotonNetwork.LocalPlayer.SetCustomProperties(new ExitGames.Client.Photon.Hashtable { { "IsSpectator", true } });
+            
+            // gameObject.SetActive(false); // 게임 오버 UI를 비활성화
+            PhotonNetwork.Destroy(this.gameObject);  // Destroy(gameObject); // 플레이어 오브젝트 삭제
         }
 
     }

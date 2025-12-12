@@ -44,7 +44,7 @@ public class LobbyManager : MonoBehaviourPunCallbacks {
         // 마스터 서버 접속 실패 시 재접속 시도
         PhotonNetwork.ConnectUsingSettings();
         // 접속 시도 중임을 텍스트로 표시
-        connectionInfoText.text = "마스터 서버에 접속 중...";
+        connectionInfoText.text = "마스터 서버에 재 접속 중...";
     }
 
     // 룸 접속 시도
@@ -70,8 +70,8 @@ public class LobbyManager : MonoBehaviourPunCallbacks {
     public override void OnJoinRandomFailed(short returnCode, string message) {
         // 접속 상태 표시
         connectionInfoText.text = "빈 방이 없음, 새로운 방 생성: " + message;
-        // 최대 4명을 수용한 빈 방 생성
-        PhotonNetwork.CreateRoom("RoomName", new RoomOptions { MaxPlayers = 4 }); // 방 이름은 "Room"
+        // 최대 8명을 수용한 빈 방 생성
+        PhotonNetwork.CreateRoom("RoomName", new RoomOptions { MaxPlayers = 8 }); // 방 이름은 "Room"
     }
 
     // 룸에 참가 완료된 경우 자동 실행

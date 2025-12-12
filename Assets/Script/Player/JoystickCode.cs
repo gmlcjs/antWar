@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using Photon.Pun;
 
 public class JoystickCode : MonoBehaviour, IDragHandler, IPointerUpHandler, IPointerDownHandler
 {
